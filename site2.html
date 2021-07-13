@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+  <head>
+    <meta charset="utf-8">
+    <title>three模型转高德3D模型(不能动态改变,材质单一)</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <link rel="stylesheet" href="https://cache.amap.com/lbs/static/main1119.css" />
+    <script src="http://webapi.amap.com/maps?v=1.4.14&key=4f597219676bb82630545b1a26c82df1&plugin=Map3D"></script>
+    <script src="./js/three.js"></script>
+    <script src="./js/ThreeToGaode.js"></script>
+  </head>
+
+  <body>
+    <div id="container"></div>
+
+    <script>
+      var loader = new THREE.TextureLoader();
+      var bumpMap = loader.load('./img/rocks.jpg');
+      bumpMap.wrapS = THREE.RepeatWrapping;
+      bumpMap.wrapT = THREE.RepeatWrapping;
+      bumpMap.repeat.set(2, 2);
+      //var normalMap = loader.load('./img/plaster-normal.jpg');
+
+      var cubeGeometry = new THREE.BoxBufferGeometry(50, 20, 90);
+      var cubeMaterial = new THREE.MeshPhongMaterial({
+        color: 0xf9b61f,
+        map: bumpMap,
+        opacity: 0.2,
+        //bumpMap: bumpMap,
+        //bumpScale: 0.5,
+      });
+      var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+      var cubeMaterial2 = new THREE.MeshPhongMaterial({
+        color: 0xf9b61f,
+      });
+      var cube2 = new THREE.Mesh(cubeGeometry, cubeMaterial2);
+
+      var map = new AMap.Map('container', {
+        viewMode: '3D',
+        showBuildingBlock: false,
+        center: [114.38973519489167, 30.507574594698116],
+        pitch: 49,
+        rotation: 33,
+        zoom: 18
+      });
+
+      map.AmbientLight = new AMap.Lights.AmbientLight([1, 1, 1], 1);
+      map.DirectionLight = new AMap.Lights.DirectionLight([1, 0, -0.5], [1, 1, 1], 1);
+      var object3Dlayer = new AMap.Object3DLayer();
+
+      var mesh = THREEToGaoDeMesh(cube);
+      mesh.scale(6, 5, 5);
+      mesh.rotateX(90);
+      mesh.position(new AMap.LngLat(114.38973519489167, 30.507574594698116), 225);
+
+      object3Dlayer.add(mesh);
+
+      var mesh2 = THREEToGaoDeMesh(cube2);
+      mesh2.scale(6 * 0.99, 5 * 0.99, 5 * 0.99);
+      mesh2.rotateX(90);
+      mesh2.position(new AMap.LngLat(114.38973519489167, 30.507574594698116), 225);
+
+      object3Dlayer.add(mesh2);
+
+      map.add(object3Dlayer);
+
+      new AMap.Text({
+        text: 'three模型转高德3D模型(不能动态改变,材质单一)',
+        position: [114.38973519489167, 30.507574594698116],
+        height: 700,
+        verticalAlign: 'bottom',
+        map: map
+      })
+    </script>
+  </body>
+
+</html>

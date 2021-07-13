@@ -1,0 +1,41 @@
+const fs = require("fs");
+const path = require("path");
+const exec = require('child_process').exec;
+let watchLess = (obj) => {
+  let fileChange = false;
+  for(let entryI in obj.lessEntry) {
+    let exec_options = [obj.lessc, obj.lessEntry[entryI], entryI, ...obj.options].join(' ');
+    exec(exec_options, (err, stdout, stderr) => {
+      if(err) console.log(stderr)
+    });
+  }
+  fs.watch(obj.watchDirectory, {
+    recursive: true
+  }, (eventType, filename) => {
+    if(filename) {
+      let filePath = 'css/' + filename;
+      fs.stat(filePath, function(err, stat) {
+        if(!err && stat.isFile() && path.extname(filePath).substr(1) == 'less' && !fileChange) { /*console.log('less发生变化');*/
+          fileChange = true;
+          setTimeout(() => {
+            for(let entryI in obj.lessEntry) {
+              let exec_options = [obj.lessc, obj.lessEntry[entryI], entryI, ...obj.options].join(' ');
+              exec(exec_options, (err, stdout, stderr) => {
+                if(err) console.log(stderr)
+              });
+            }
+            fileChange = false;
+          }, 30)
+        }
+      });
+    }
+  });
+};
+watchLess({
+  lessc: 'C:/Users/Administrator/AppData/Roaming/npm/lessc.cmd',
+  options: ['--source-map'],
+  watchDirectory: 'css',
+  lessEntry: {
+    'css/index.css': 'css/index.less'
+  }
+})

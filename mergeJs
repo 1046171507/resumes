@@ -1,0 +1,172 @@
+const fs = require("fs");
+const path = require("path");
+const exec = require('child_process').exec;
+
+var mergeJsObj = {};
+var mergeJsObjSortUniq = {};
+
+let mergeJs = (obj) => {
+    for(let entryI in obj.jsEntry) {
+        let jsImport = obj.jsEntry[entryI],
+            jsExport = entryI;
+        let zIndex = 0;
+
+        mergeJsObj[jsExport] = [];
+        let theModule = {
+            'url': jsImport,
+            'moduleStr': '',
+            'zIndex': zIndex
+        };
+        mergeJsObj[jsExport].push(theModule);
+        single_read_js(theModule, mergeJsObj[jsExport]);
+
+    }
+    sortUniq(mergeJsObj);
+    writeMergeJs(mergeJsObjSortUniq, obj);
+};
+
+let sortUniq = (obj) => {
+    for(let entryI in obj) {
+        let jsExport = entryI,
+            jsImport = obj[entryI];
+
+        obj[entryI] = obj[entryI].sort((n1, n2) => {
+            //if(n1['zIndex'] == n2['zIndex']) return 1;
+            return n2['zIndex'] - n1['zIndex'];
+        });
+        //console.log(obj[entryI]);
+
+        let newJsImport = [];
+
+        obj[entryI].forEach((itemOld) => {
+            var isExist = false;
+            newJsImport.forEach((itemNew) => {
+                if(itemOld['url'] == itemNew['url']) {
+                    isExist = true;
+                }
+            });
+            if(!isExist) {
+                newJsImport.push(itemOld);
+            };
+        });
+        mergeJsObjSortUniq[entryI] = newJsImport;
+    }
+    //console.log(mergeJsObjSortUniq);
+};
+
+let writeMergeJs = (obj, mergeJsArg) => {
+    for(let entryI in obj) {
+        let jsExport = entryI,
+            jsImport = obj[entryI];
+        let jsExportMergeStr = '';
+
+        obj[entryI].forEach((item) => {
+            jsExportMergeStr += '/*' + item['url'] + '*/\n' + item['moduleStr'] + '\n';
+        });
+        var babelPath = mergeJsArg.babel;
+        if(!babelPath) {
+            fs.writeFile(jsExport, jsExportMergeStr, 'utf8', (err) => {
+                if(err) throw err;
+                console.log(jsExport + '打包完成');
+            });
+        } else {
+            let basename = path.win32.basename(jsExport);
+            fs.writeFile(babelPath + "/" + basename, jsExportMergeStr, 'utf8', (err) => {
+                if(err) throw err;
+                exec_babel();
+            });
+
+            let exec_babel = () => {
+                exec("babel " + basename, {
+                    cwd: babelPath
+                }, (err, stdout, stderr) => {
+                    if(err) throw stderr;
+                    writeFile_outFile(stdout);
+                });
+            };
+
+            let writeFile_outFile = (stdout) => {
+                fs.writeFile(jsExport, stdout, 'utf8', (err) => {
+                    if(err) throw err;
+                    console.log(jsExport + '打包完成');
+                    unlink_babel_inFile();
+                });
+            };
+
+            let unlink_babel_inFile = () => {
+                fs.unlink(babelPath + "/" + basename, (err) => {
+                    if(err) throw err;
+                });
+            };
+        };
+    }
+};
+
+let single_read_js = (singleJsObj, roomExport) => {
+    let jsurl = singleJsObj.url;
+    let data = fs.readFileSync(jsurl, 'utf8');
+    let str = import_from_To_moduleName(data, singleJsObj, roomExport);
+    let moduleName = singleJsObj['url'].replace(/.js$/, '').replace(/.*\/|-|\./g, '_').replace(/'/g, '') + '_module';
+    singleJsObj['moduleStr'] = 'var ' + moduleName + ' = ' + str;
+};
+
+let import_from_To_moduleName = (str, singleJsObj, roomExport) => {
+    str = str.replace(/\/\/import [^\n]{1,}\n/g, '');
+    str = str.replace(/\/\*import [^\*]{1,}\*\/\r\n/g, '');
+    str = str.replace(/\/\/export\s+(default )?[^\n]{1,}(\n|$)/g, '');
+    str = str.replace(/\/\*export\s+(default )?[^\*]{1,}\*\/(\r\n|$)/g, '');
+    str = '\t' + str.replace(/\n/g, '\n\t');
+
+    let purl = path.dirname(singleJsObj.url);
+
+    let importArr = str.match(/import ([^;|\n|\(]{1,})(;|\n)/g);
+
+    if(importArr) {
+        for(let i = 0, len = importArr.length; i < len; i++) {
+            let oImport = importArr[i];
+            let fromSrc;
+            if(oImport.indexOf(' from ') != -1) {
+                try {
+                    fromSrc = oImport.match(/ from ('[\s|\S]*')/)[1];
+                } catch(e) {
+                    fromSrc = oImport.match(/ from ("[\s|\S]*")/)[1];
+                }
+            } else {
+                try {
+                    fromSrc = oImport.match(/ ('[\s|\S]*')/)[1];
+                } catch(e) {
+                    fromSrc = oImport.match(/ ("[\s|\S]*")/)[1];
+                }
+            }
+            let importUrl = fromSrc.replace(/'|"/g, '');
+            importUrl = path.join(purl, importUrl).replace(/\\/g, '/');
+            let _fromSrc = importUrl.replace(/.js$/, '').replace(/.*\/|-|\./g, '_') + '_module';
+            let oImportNew = '';
+            if(oImport.indexOf(' from ') != -1) {
+                oImportNew = oImport.replace(/^import /, 'var ').replace(' from ' + fromSrc, ' = ' + _fromSrc);
+            }
+            str = str.replace(oImport, oImportNew);
+            let oImportObj = {
+                'url': importUrl,
+                'moduleStr': '',
+                'zIndex': singleJsObj['zIndex'] + 1
+            };
+            roomExport.push(oImportObj);
+            single_read_js(oImportObj, roomExport);
+        }
+    };
+    if(/export\s+(default )?/.test(str)) {
+        str = str.replace(/export\s+(default )?/, "var y_y = ");
+        str = '(function(){\n' + str + '\n\treturn y_y;\n})();\n';
+    } else {
+        str = '(function(){\n' + str + '\n})();\n';
+    }
+    return str;
+};
+
+mergeJs({
+    babel: 'C:/es6-babel',
+    jsEntry: {
+        './js/index.merge.js': './js/index.js'
+    }
+})

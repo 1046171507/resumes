@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN" manifest="cache.appcache">
+
+  <head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="css/index.css" />
+    <link href="./video/prologue.mp4" rel="prefetch">
+    <link href="js/youzikuFontLoader/opentype.min.js" rel="prefetch">
+  </head>
+
+  <body>
+    <video id="video" loop crossOrigin="anonymous" webkit-playsinline style="display: none;">
+      <source src="./video/prologue.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+    </video>
+    <div id="three-container"></div>
+    <script src="js/stats.min.js" defer></script>
+    <!--<script src="js/three.js" defer></script>-->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.102.0/build/three.min.js" defer></script>
+    <script src="js/WebGL.js" defer></script>
+    <script src="js/youzikuFontLoader/opentype.min.js" defer></script>
+    <script src="js/youzikuFontLoader/loader.js" defer></script>
+    <script src="js/TessellateModifier.js" defer></script>
+    <script src="js/common.js" defer></script>
+    <script src="js/index.js" defer type="module"></script>
+    <script src="js/index.merge.js" defer nomodule></script>
+    <!--<script src="js/index.merge.js" defer></script>-->
+  </body>
+
+</html>
