@@ -103,7 +103,6 @@ var textInit = function() {
   s = textG.children.length;
   TextMain('\n\n              『html版简历』\n', 12);
   // TextMain('   (做之前没考虑英文大小不定,做的有点糙)\n\n', 8);
-  TextMain('  \n\n', 8)
   htmlResume = textG.children.slice(s);
   TextMain('自我评价:我是一个执着于技术的程序员,能够发散式思考,灵活解决项目上的问题;熟练使用THREE,Vue,H5,CSS3-3d,Js,es6,svg,canvas,ECharts;熟悉Create.js,D3.js;熟练webpack(做过从零开始搭建的那种), node.js(写过node工具), github(VScode GitLens);\n\n', 10);
   TextMain('历经公司:\n2019-12~至今  中国系统(武汉研发中心);\n2018-02~2019-11  北京蜂向科技研发中心;\n2016-09~2018-01 东湖大数据交易中心;\n2015-05~2016-08 良印科技(北京外包);\n2013-05~2014-12 北京清华医院', 10);
